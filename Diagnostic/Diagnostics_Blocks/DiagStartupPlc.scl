@@ -1,0 +1,145 @@
+﻿FUNCTION_BLOCK "DiagStartupPlc"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_OUTPUT 
+      status : Int;   // The return value of system function, where the last error occured
+      instructionError : Int;   // Indicates in which system function the error occured: 1= DeviceStates PN , 2=GetName PN, 3=ModuleStates PN,  4=DeviceStates DP, 5= GetName DP. 6= ModuleStates DP
+   END_VAR
+
+   VAR_IN_OUT 
+      plc : "typePlc";   // The diagnostics structure for one PLC
+   END_VAR
+
+   VAR 
+      statGeoAddr {InstructionName := 'GEOADDR'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : GEOADDR;   // Slot information
+      statGeoLaddr { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_ANY;   // GEO2LOG hardware identifier
+      statActualCentralModules : USInt := 0;   // Actual number of modules in the central station (PLC)
+      statPlcModuleStates : Array[0..127] of Bool;   // Storage of the status of all modules in the PLC central station --> State: Problem
+   END_VAR
+
+   VAR_TEMP 
+      tempModuleNum : Int;   // index module number
+      tempRetValGeo : Int;   // GEO2LOG error information
+      tempRetValModuleStates : Int;   // Return value system function ModuleStates
+   END_VAR
+
+   VAR CONSTANT 
+      MODULE_OF_PLC : USInt := 4;   // GEO2LOG structure: HW type = 4
+      CPU : USInt := 0;   // GEO2LOG structure: Area = 0
+      CENTRAL_SYSTEM : USInt := 0;   // GEO2LOG structure: IO System = 0
+      CENTRAL_STATION : USInt;   // GEO2LOG structure: Station = 0
+      HW_ID_PLC_MODULES : HW_DEVICE := 32;   // HW ID of the PLC, which is needed for getting the module states --> fix value
+      STATE_PROBLEM : USInt := 5;   // Used for instruction DeviceStates, read out all devices with several problems
+      ERR_MOD_STAT_CENTRAL : USInt := 3;   // Value for output instruction error, ModuleStates local modules
+   END_VAR
+
+
+BEGIN
+	//=============================================================================
+	//SIEMENS AG
+	//(c)Copyright 2015 All Rights Reserved
+	//-----------------------------------------------------------------------------
+	//Library: -
+	//Tested with: S7-1516-3 PN/DP FW 1.7
+	//Engineering: TIA Portal V13 SP1
+	//Restrictions: -
+	//Requirements: -
+	//Functionality: Determine hardware identifier and module states from local
+	//               modules
+	//-----------------------------------------------------------------------------
+	//Change log table:
+	//Version  Date       Expert in charge Changes applied
+	//01.00.00 24.03.2015 Siemens Industry Online Support First released version
+	//=============================================================================
+	
+	//=============================================================================
+	// Determine hardware identifier from LOCAL MODULES
+	//=============================================================================
+	#statGeoAddr.HWTYPE := #MODULE_OF_PLC;      // Hardware type 4: module
+	#statGeoAddr.AREA := #CPU;                  // Area ID 0: CPU
+	#statGeoAddr.IOSYSTEM := #CENTRAL_SYSTEM;   // PROFINET IO system
+	                                            // (0 = central unit in the rack)
+	#statGeoAddr.STATION := #CENTRAL_STATION;   // Number of the rack
+	                                            // if area identifier
+	                                            //  AREA = 0 (central module).
+	
+	FOR #tempModuleNum := 1 TO "MAX_MODULES_LOCAL" DO
+	  // Slot number
+	  #statGeoAddr.SLOT := INT_TO_UINT(#tempModuleNum);
+	  // read LADDR from local modules
+	  #tempRetValGeo := GEO2LOG(GEOADDR := #statGeoAddr,
+	                            LADDR => #statGeoLaddr);
+	  // check Retval
+	  IF (#tempRetValGeo = 0)
+	  THEN
+	    // store LADDR from local modules in diagnostic data block
+	    #plc.slot[#tempModuleNum].slotLaddr := #statGeoLaddr;
+	    #statActualCentralModules := #statActualCentralModules + 1;
+	  ELSE
+	    // If the return value ist not = 0 --> the device/system/module is not
+	    // configured --> No error handling
+	    // set LADDR from local modules to 0 in diagnostic data block
+	    #plc.slot[#tempModuleNum].slotLaddr := 0;
+	  END_IF;
+	  // Store the actual configured devices in the diagnostics DB
+	  #plc.actualConfiguredCentralModules := #statActualCentralModules;
+	END_FOR;
+	
+	
+	//=============================================================================
+	// Check module states from LOCAL MODULES
+	//=============================================================================
+	// Check if central module are available - at least one module is always
+	// configured, the PLC itself
+	IF (#plc.actualConfiguredCentralModules > 1)
+	THEN
+	  // Check the status of the local modules
+	  #tempRetValModuleStates := ModuleStates(LADDR := #HW_ID_PLC_MODULES,
+	                                          MODE := #STATE_PROBLEM,
+	                                          STATE := #statPlcModuleStates);
+	  
+	  // Check if the block call was successful
+	  IF (#tempRetValModuleStates <> 0)
+	  THEN
+	    // Error handling
+	    #status := #tempRetValModuleStates;
+	    #instructionError := #ERR_MOD_STAT_CENTRAL;
+	  ELSE
+	    ; // Everything is ok!
+	  END_IF;
+	ELSE
+	  ; // There are no central module configured
+	END_IF;
+	
+	// The error LED of the PLC is flashing --> Set error state of the PLC
+	#plc.errorState := TRUE;
+	
+	
+	//=============================================================================
+	// set module states from LOCAL MODULES
+	//=============================================================================
+	
+	// If the first bit in the array is true, at least one module is faulty
+	IF (#statPlcModuleStates[0] = TRUE)
+	THEN
+	  // Check which of the modules are faulty
+	  // PLC modules array starts at index 2 for the first local module
+	  FOR #tempModuleNum := 2 TO #plc.actualConfiguredCentralModules + 1 DO
+	    IF (#statPlcModuleStates[#tempModuleNum] = TRUE)
+	    THEN
+	      #plc.slot[#tempModuleNum - 1].slotErrorState := TRUE;
+	    ELSE
+	      #plc.slot[#tempModuleNum - 1].slotErrorState := FALSE;
+	    END_IF;
+	  END_FOR;
+	  
+	ELSE
+	  // Everything is ok!
+	  FOR #tempModuleNum := 1 TO #plc.actualConfiguredCentralModules DO
+	    #plc.slot[#tempModuleNum].slotErrorState := FALSE;
+	  END_FOR;
+	  
+	END_IF;
+	
+END_FUNCTION_BLOCK
+

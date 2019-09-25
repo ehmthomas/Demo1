@@ -1,0 +1,64 @@
+﻿FUNCTION "CopyToHmiDB" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      deviceIndex : Int;   // Index for Device
+   END_VAR
+
+   VAR_IN_OUT 
+      plc : "typePlc";   // The diagnostics structure for one PLC
+      showPlc : "typeShowPlc";   // The show diagnostics structure for one PLC
+      ioSystem : "typeIoSystem";   // The diagnostics structure for one IO System
+      showIoSystem : "typeShowIoSystem";   // The show diagnostics structure for one IO System
+   END_VAR
+
+   VAR_TEMP 
+      tempSlotIndex : Int;   // Index for Slot
+   END_VAR
+
+
+BEGIN
+	//=============================================================================
+	//SIEMENS AG
+	//(c)Copyright 2015 All Rights Reserved
+	//-----------------------------------------------------------------------------
+	//Library: -
+	//Tested with: S7-1516-3 PN/DP FW 1.7
+	//Engineering: TIA Portal V13 SP1
+	//Restrictions: -
+	//Requirements: -
+	//Functionality: copy error states from DiagnosticData DB to ShowDiag DB 
+	//-----------------------------------------------------------------------------
+	//Change log table:
+	//Version  Date       Expert in charge Changes applied
+	//01.00.00 24.03.2015 Siemens Industry Online Support First released version
+	//=============================================================================
+	//Comment
+	//=============================================================================
+	// copy errorstates for PLC
+	//=============================================================================
+	IF (#deviceIndex = 0)
+	THEN
+	    #showPlc.errorState := #plc.errorState;
+	    FOR #tempSlotIndex := 1 TO "MAX_MODULES_LOCAL" DO
+	        #showPlc.slot[#tempSlotIndex].slotErrorState := #plc.slot[#tempSlotIndex].slotErrorState;
+	    END_FOR;
+	    
+	    //=============================================================================
+	    // copy errorstates for Devices
+	    // 
+	    //=============================================================================
+	ELSIF (#deviceIndex > 0)
+	THEN
+	    #showIoSystem.device[#deviceIndex].errorState := #ioSystem.device[#deviceIndex].errorState;
+	    FOR #tempSlotIndex := 0 TO #ioSystem.device[#deviceIndex].actualConfiguredModules DO
+	        #showIoSystem.device[#deviceIndex].slot[#tempSlotIndex].slotErrorState := #ioSystem.device[#deviceIndex].slot[#tempSlotIndex].slotErrorState;
+	    END_FOR;
+	    #showIoSystem.device[#deviceIndex].errorState := #ioSystem.device[#deviceIndex].errorState;
+	ELSE
+	    ;
+	END_IF;
+	
+	
+END_FUNCTION
+

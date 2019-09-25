@@ -1,0 +1,198 @@
+﻿FUNCTION_BLOCK "Diagnostics"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      firstCyleInit : Bool := TRUE;   // in first cycle TRUE
+   END_VAR
+
+   VAR_IN_OUT 
+      plc : "typePlc";   // The diagnostics structure for one PLC
+      showPlc : "typeShowPlc";   // The show diagnostics structure for one PLC
+      ioSystem : Array[1.."MAX_SYSTEM"] of "typeIoSystem";   // The diagnostics structure for one IO System
+      showIoSystem : Array[1.."MAX_SYSTEM"] of "typeShowIoSystem";   // The show diagnostics structure for one IO System
+      showActIoSystem : "typeShowActIoSystem";   // The show diagnostics structure for the selected IO System
+   END_VAR
+
+   VAR 
+      statIoSystemIndex : Int;   // Index for IO System
+      statSlotIndex : Int;   // Index for Slot
+      statDeviceIndex : Int;   // Index for Device
+   END_VAR
+
+   VAR_TEMP 
+      tempRetValLed : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      ERROR_LED : UInt := 2;   // Identification number of the ERROR LED
+      ERROR_LED_ON : UInt := 4;   // LED status Color 1 flashing
+   END_VAR
+
+
+BEGIN
+	//=============================================================================
+	//SIEMENS AG
+	//(c)Copyright 2015 All Rights Reserved
+	//-----------------------------------------------------------------------------
+	//Library: -
+	//Tested with: S7-1516-3 PN/DP FW 1.7
+	//Engineering: TIA Portal V13 SP1
+	//Restrictions: -
+	//Requirements: -
+	//Functionality: copy and control diagnosis information for visualization
+	//-----------------------------------------------------------------------------
+	//Change log table:
+	//Version  Date       Expert in charge Changes applied
+	//01.00.00 24.03.2015 Siemens Industry Online Support First released version
+	//=============================================================================
+	
+	//=============================================================================
+	// copy diagnosis information to ShowDiag DB for visualization in first cycle
+	//=============================================================================
+	IF (#firstCyleInit = TRUE)
+	THEN
+	  // copy PLC diagnosis information to ShowDiag DB 
+	  #showPlc.errorState := #plc.errorState;
+	  FOR #statSlotIndex := 1 TO "MAX_MODULES_LOCAL" DO
+	    
+	    IF #plc.slot[#statSlotIndex].slotLaddr <> 0
+	    THEN
+	      #showPlc.slot[#statSlotIndex].slotErrorState := #plc.slot[#statSlotIndex].slotErrorState;
+	      #showPlc.slot[#statSlotIndex].slotUsed := TRUE;
+	    ELSE
+	      #showPlc.slot[#statSlotIndex].slotUsed := FALSE;
+	    END_IF;
+	  END_FOR;
+	  
+	  // copy device diagnosis information for each IO system to "ShowDiag" DB
+	  FOR #statIoSystemIndex := 1 TO "MAX_SYSTEM" DO
+	    
+	    FOR #statDeviceIndex := 1 TO "MAX_DEVICES_SYSTEM" DO
+	      #showIoSystem[#statIoSystemIndex].device[#statDeviceIndex].stationNumber := INT_TO_UINT(#statDeviceIndex);
+	      #showIoSystem[#statIoSystemIndex].device[#statDeviceIndex].name := #ioSystem[#statIoSystemIndex].device[#statDeviceIndex].name;
+	      #showIoSystem[#statIoSystemIndex].device[#statDeviceIndex].errorState := #ioSystem[#statIoSystemIndex].device[#statDeviceIndex].errorState;
+	      
+	      FOR #statSlotIndex := 0 TO "MAX_MODULES_DEVICE" DO
+	        
+	        IF (#ioSystem[#statIoSystemIndex].device[#statDeviceIndex].slot[#statSlotIndex].slotLaddr <> 0)
+	        THEN
+	          #showIoSystem[#statIoSystemIndex].device[#statDeviceIndex].slot[#statSlotIndex].slotErrorState := #ioSystem[#statIoSystemIndex].device[#statDeviceIndex].slot[#statSlotIndex].slotErrorState;
+	          #showIoSystem[#statIoSystemIndex].device[#statDeviceIndex].slot[#statSlotIndex].slotUsed := TRUE;
+	        ELSE
+	          #showIoSystem[#statIoSystemIndex].device[#statDeviceIndex].slot[#statSlotIndex].slotUsed := FALSE;
+	        END_IF;
+	      END_FOR;
+	    END_FOR;
+	    
+	  END_FOR;
+	  
+	END_IF;
+	
+	
+	
+	//=============================================================================
+	// check error active
+	//=============================================================================
+	#tempRetValLed := LED(LADDR := "Local~Common", LED := #ERROR_LED);
+	IF #tempRetValLed = #ERROR_LED_ON
+	THEN
+	  #plc.errorState := TRUE;
+	ELSE
+	  #plc.errorState := FALSE;
+	END_IF;
+	
+	//=============================================================================
+	// check error in IO systems active
+	//=============================================================================
+	FOR #statIoSystemIndex := 1 TO "MAX_SYSTEM" DO
+	  #ioSystem[#statIoSystemIndex].ioSystemError := FALSE;
+	  
+	  FOR #statDeviceIndex := 1 TO "MAX_DEVICES_SYSTEM" DO
+	    IF (#ioSystem[#statIoSystemIndex].device[#statDeviceIndex].error = TRUE)
+	    THEN
+	      #ioSystem[#statIoSystemIndex].ioSystemError := TRUE;
+	    END_IF;
+	  END_FOR;
+	END_FOR;
+	
+	
+	//=============================================================================
+	// HMI control
+	//=============================================================================
+	
+	//=============================================================================
+	// check index of IO system from HMI
+	//=============================================================================
+	IF (#showActIoSystem.actIoSystem > "MAX_SYSTEM")
+	THEN
+	  #showActIoSystem.actIoSystem := "MAX_SYSTEM";
+	END_IF;
+	
+	//=============================================================================
+	// copy diagnosis information to PLC for visualization
+	//=============================================================================
+	IF (#showPlc.diagnosisLoaded = TRUE)
+	THEN
+	  #showPlc.errorState := #plc.errorState;
+	//  #showPlc.diagnosisLoaded := FALSE;
+	ELSE
+	  ;// No initialization needed
+	END_IF;
+	
+	//=============================================================================
+	// copy diagnosis information to active IO system for visualization
+	//=============================================================================
+	IF (#showActIoSystem.diagnosisLoaded = TRUE)
+	THEN
+	  #showActIoSystem.device := #showIoSystem[#showActIoSystem.actIoSystem].device;
+	  #showActIoSystem.diagnosisLoaded := FALSE;
+	ELSE
+	  ;// No initialization needed
+	END_IF;
+	
+	//=============================================================================
+	// copy device state of the selected device in HMI to active device
+	// to show the module state
+	//=============================================================================
+	IF (#showActIoSystem.copyModuleStates = TRUE)
+	THEN
+	  #showActIoSystem.actDevice := #showIoSystem[#showActIoSystem.actIoSystem].device[#showActIoSystem.actDeviceIndex];
+	END_IF;
+	  
+	//=============================================================================
+	// Reset "was faulty" and "was lost" devices and slaves to "ok!"
+	//=============================================================================
+	
+	// Detect a rising edge at ResetStates and start initializing
+	IF (#showActIoSystem.resetStates = TRUE)
+	THEN
+	  // Reset PN Devices
+	  FOR #statDeviceIndex := 1 TO "MAX_DEVICES_SYSTEM" DO
+	    IF ((#ioSystem[#showActIoSystem.actIoSystem].device[#statDeviceIndex].errorState = "DEV_STATE_WAS_FAULT") OR
+	        (#ioSystem[#showActIoSystem.actIoSystem].device[#statDeviceIndex].errorState = "DEV_STATE_WAS_LOST") OR
+	        (#ioSystem[#showActIoSystem.actIoSystem].device[#statDeviceIndex].errorState = "DEV_STATE_WAS_DISABLED"))
+	    THEN
+	      #ioSystem[#showActIoSystem.actIoSystem].device[#statDeviceIndex].errorState := "DEV_STATE_OK";
+	      #ioSystem[#showActIoSystem.actIoSystem].device[#statDeviceIndex].error := FALSE;
+	      
+	      // copy diagnosis information to ShowDiag DB
+	      "CopyToHmiDB"(deviceIndex := #statDeviceIndex,
+	                    plc := #plc,
+	                    showPlc := #showPlc,
+	                    ioSystem := #ioSystem[#showActIoSystem.actIoSystem],
+	                    showIoSystem := #showIoSystem[#showActIoSystem.actIoSystem]);
+	      
+	    ELSE
+	      ;
+	    END_IF;
+	  END_FOR;
+	  
+	  // update visualization
+	  #showActIoSystem.device := #showIoSystem[#showActIoSystem.actIoSystem].device;
+	  
+	ELSE
+	  ;// No initialization needed
+	END_IF;
+	
+END_FUNCTION_BLOCK
+

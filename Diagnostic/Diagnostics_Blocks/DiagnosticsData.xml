@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V16" />
+  <DocumentInfo>
+    <Created>2019-09-22T11:06:18.2459136Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SIMATIC Energy Suite</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Professional</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SIMATIC Visualization Architect</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.GlobalDB ID="0">
+    <AttributeList>
+      <AutoNumber>true</AutoNumber>
+      <HeaderAuthor>SIEMENS</HeaderAuthor>
+      <HeaderFamily>Diagnose</HeaderFamily>
+      <HeaderName>10</HeaderName>
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v4">
+  <Section Name="Static">
+    <Member Name="plc" Datatype="&quot;typePlc&quot;" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="en-US">diagnosis information PLC</MultiLanguageText><MultiLanguageText Lang="de-DE">diagnosis information PLC</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="actualConfiguredCentralModules" Datatype="Int" /><Member Name="errorState" Datatype="Bool" /><Member Name="slot" Datatype="Array[1..&quot;MAX_MODULES_LOCAL&quot;] of &quot;typeModul&quot;"><Sections><Section Name="None"><Member Name="slotLaddr" Datatype="HW_IO" /><Member Name="slotErrorState" Datatype="Bool" /></Section></Sections></Member></Section></Sections></Member>
+    <Member Name="ioSystem" Datatype="Array[1..&quot;MAX_SYSTEM&quot;] of &quot;typeIoSystem&quot;" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="en-US">diagnosis information IO systems</MultiLanguageText><MultiLanguageText Lang="de-DE">diagnosis information IO systems</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="ioSystemId" Datatype="UInt" /><Member Name="ioSystemError" Datatype="Bool" /><Member Name="firstDevice" Datatype="Int" /><Member Name="lastDevice" Datatype="Int" /><Member Name="actualConfiguredDevices" Datatype="Int" /><Member Name="device" Datatype="Array[1..&quot;MAX_DEVICES_SYSTEM&quot;] of &quot;typeDevice&quot;"><Sections><Section Name="None"><Member Name="laddr" Datatype="HW_DEVICE" /><Member Name="name" Datatype="String[50]" /><Member Name="errorState" Datatype="USInt" /><Member Name="error" Datatype="Bool" /><Member Name="nextDevice" Datatype="Int" /><Member Name="actualConfiguredModules" Datatype="Int" /><Member Name="slot" Datatype="Array[0..&quot;MAX_MODULES_DEVICE&quot;] of &quot;typeModul&quot;"><Sections><Section Name="None"><Member Name="slotLaddr" Datatype="HW_IO" /><Member Name="slotErrorState" Datatype="Bool" /></Section></Sections></Member></Section></Sections></Member></Section></Sections></Member>
+  </Section>
+</Sections></Interface>
+      <IsOnlyStoredInLoadMemory>false</IsOnlyStoredInLoadMemory>
+      <IsRetainMemResEnabled>false</IsRetainMemResEnabled>
+      <IsWriteProtectedInAS>false</IsWriteProtectedInAS>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <MemoryReserve>100</MemoryReserve>
+      <Name>DiagnosticsData</Name>
+      <Number>2080</Number>
+      <ProgrammingLanguage>DB</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text>The global data block contains the data structure of the IO system, the control, the devices with the modules and an error buffer.</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="3" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text>Diagosis data DB</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.GlobalDB>
+</Document>

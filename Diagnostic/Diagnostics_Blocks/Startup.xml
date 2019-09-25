@@ -1,0 +1,367 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V16" />
+  <DocumentInfo>
+    <Created>2019-09-22T11:06:18.1471742Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SIMATIC Energy Suite</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Professional</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SIMATIC Visualization Architect</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.OB ID="0">
+    <AttributeList>
+      <AutoNumber>true</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v4">
+  <Section Name="Input">
+    <Member Name="LostRetentive" Datatype="Bool" Accessibility="Public" Informative="true">
+      <Comment>
+        <MultiLanguageText Lang="en-US">True if retentive data are lost</MultiLanguageText>
+      </Comment>
+    </Member>
+    <Member Name="LostRTC" Datatype="Bool" Accessibility="Public" Informative="true">
+      <Comment>
+        <MultiLanguageText Lang="en-US">True if date and time are lost</MultiLanguageText>
+      </Comment>
+    </Member>
+  </Section>
+  <Section Name="Temp" />
+  <Section Name="Constant" />
+</Sections></Interface>
+      <IsIECCheckEnabled>false</IsIECCheckEnabled>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <Name>Startup</Name>
+      <Number>100</Number>
+      <ProgrammingLanguage>FBD</ProgrammingLanguage>
+      <SecondaryType>Startup</SecondaryType>
+      <SetENOAutomatically>false</SetENOAutomatically>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text>//============================================================================
+//SIEMENS AG
+//(c)Copyright 2015 All Rights Reserved
+//-----------------------------------------------------------------------------
+//Library: -
+//Tested with: S7-1516-3 PN/DP FW 1.7
+//Engineering: TIA Portal V13 SP1
+//Restrictions: -
+//Requirements: -
+//Functionality: Startup OB for Configuration control and Diagnostic
+//-----------------------------------------------------------------------------
+//Change log table:
+//Version  Date       Expert in charge Changes applied
+//01.00.00 24.03.2015 Siemens Industry Online Support First released version
+//============================================================================</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <SW.Blocks.CompileUnit ID="3" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="GlobalVariable" UId="21">
+      <Symbol>
+        <Component Name="DiagnosticsData" />
+        <Component Name="plc" />
+      </Symbol>
+    </Access>
+    <Call UId="22">
+      <CallInfo Name="DiagStartupPlc" BlockType="FB">
+        <Instance Scope="GlobalVariable" UId="23">
+          <Component Name="InstDiagStartupPlc" />
+        </Instance>
+        <Parameter Name="status" Section="Output" Type="Int" />
+        <Parameter Name="instructionError" Section="Output" Type="Int" />
+        <Parameter Name="plc" Section="InOut" Type="&quot;typePlc&quot;" />
+      </CallInfo>
+    </Call>
+  </Parts>
+  <Wires>
+    <Wire UId="27">
+      <OpenCon UId="24" />
+      <NameCon UId="22" Name="en" />
+    </Wire>
+    <Wire UId="28">
+      <IdentCon UId="21" />
+      <NameCon UId="22" Name="plc" />
+    </Wire>
+    <Wire UId="29">
+      <NameCon UId="22" Name="status" />
+      <OpenCon UId="25" />
+    </Wire>
+    <Wire UId="30">
+      <NameCon UId="22" Name="instructionError" />
+      <OpenCon UId="26" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>FBD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="4" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="5" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="6" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="7" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text>call startup and diagnostic of PLC</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="8" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="GlobalConstant" UId="21">
+      <Constant Name="Local~PROFINET_IO-System" />
+    </Access>
+    <Access Scope="GlobalVariable" UId="22">
+      <Symbol>
+        <Component Name="DiagnosticsData" />
+        <Component Name="ioSystem" AccessModifier="Array">
+          <Access Scope="GlobalConstant">
+            <Constant Name="IO_SYSTEM1" />
+          </Access>
+        </Component>
+      </Symbol>
+    </Access>
+    <Call UId="23">
+      <CallInfo Name="DiagStartupIoSystem" BlockType="FB">
+        <Instance Scope="GlobalVariable" UId="24">
+          <Component Name="InstDiagStartupIoSystem1" />
+        </Instance>
+        <Parameter Name="ioSystemHwId" Section="Input" Type="HW_IOSYSTEM" />
+        <Parameter Name="status" Section="Output" Type="Int" />
+        <Parameter Name="instructionError" Section="Output" Type="Int" />
+        <Parameter Name="errorIndex" Section="Output" Type="Int" />
+        <Parameter Name="ioSystem" Section="InOut" Type="&quot;typeIoSystem&quot;" />
+      </CallInfo>
+    </Call>
+  </Parts>
+  <Wires>
+    <Wire UId="29">
+      <OpenCon UId="25" />
+      <NameCon UId="23" Name="en" />
+    </Wire>
+    <Wire UId="30">
+      <IdentCon UId="21" />
+      <NameCon UId="23" Name="ioSystemHwId" />
+    </Wire>
+    <Wire UId="31">
+      <IdentCon UId="22" />
+      <NameCon UId="23" Name="ioSystem" />
+    </Wire>
+    <Wire UId="32">
+      <NameCon UId="23" Name="status" />
+      <OpenCon UId="26" />
+    </Wire>
+    <Wire UId="33">
+      <NameCon UId="23" Name="instructionError" />
+      <OpenCon UId="27" />
+    </Wire>
+    <Wire UId="34">
+      <NameCon UId="23" Name="errorIndex" />
+      <OpenCon UId="28" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>FBD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="9" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="B" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text>call startup and diagnostic of Devices from IO system 1</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="D" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="GlobalConstant" UId="21">
+      <Constant Name="Local~DP-Mastersystem" />
+    </Access>
+    <Access Scope="GlobalVariable" UId="22">
+      <Symbol>
+        <Component Name="DiagnosticsData" />
+        <Component Name="ioSystem" AccessModifier="Array">
+          <Access Scope="GlobalConstant">
+            <Constant Name="IO_SYSTEM2" />
+          </Access>
+        </Component>
+      </Symbol>
+    </Access>
+    <Call UId="23">
+      <CallInfo Name="DiagStartupIoSystem" BlockType="FB">
+        <Instance Scope="GlobalVariable" UId="24">
+          <Component Name="InstDiagStartupIoSystem2" />
+        </Instance>
+        <Parameter Name="ioSystemHwId" Section="Input" Type="HW_IOSYSTEM" />
+        <Parameter Name="status" Section="Output" Type="Int" />
+        <Parameter Name="instructionError" Section="Output" Type="Int" />
+        <Parameter Name="errorIndex" Section="Output" Type="Int" />
+        <Parameter Name="ioSystem" Section="InOut" Type="&quot;typeIoSystem&quot;" />
+      </CallInfo>
+    </Call>
+  </Parts>
+  <Wires>
+    <Wire UId="29">
+      <OpenCon UId="25" />
+      <NameCon UId="23" Name="en" />
+    </Wire>
+    <Wire UId="30">
+      <IdentCon UId="21" />
+      <NameCon UId="23" Name="ioSystemHwId" />
+    </Wire>
+    <Wire UId="31">
+      <IdentCon UId="22" />
+      <NameCon UId="23" Name="ioSystem" />
+    </Wire>
+    <Wire UId="32">
+      <NameCon UId="23" Name="status" />
+      <OpenCon UId="26" />
+    </Wire>
+    <Wire UId="33">
+      <NameCon UId="23" Name="instructionError" />
+      <OpenCon UId="27" />
+    </Wire>
+    <Wire UId="34">
+      <NameCon UId="23" Name="errorIndex" />
+      <OpenCon UId="28" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>FBD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="E" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="10" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="11" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text>call startup and diagnostic of Devices from IO system 2</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="12" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource />
+          <ProgrammingLanguage>FBD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="13" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="14" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="15" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="16" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <MultilingualText ID="17" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="18" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text>"Complete Restart"</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.OB>
+</Document>

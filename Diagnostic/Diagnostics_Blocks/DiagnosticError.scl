@@ -1,0 +1,174 @@
+﻿FUNCTION "DiagnosticError" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      ioState : Word;   // IO state of the HW object
+      laddr : HW_ANY;   // Hardware identifier
+      channel : UInt;   // Channel number
+      multiError : Bool;   // =true if more than one error is present
+   END_VAR
+
+   VAR_IN_OUT 
+      plc : "typePlc";   // The diagnostics structure for one PLC
+      showPlc : "typeShowPlc";   // The show diagnostics structure for one PLC
+      ioSystem : Array[1.."MAX_SYSTEM"] of "typeIoSystem";   // The diagnostics structure for one IO System
+      showIoSystem : Array[1.."MAX_SYSTEM"] of "typeShowIoSystem";   // The show diagnostics structure for one IO System
+      showActIoSystem : "typeShowActIoSystem";   // The show diagnostics structure for the selected IO System
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // index system
+      tempSlotIndex : Int;   // Loop index
+      tempIoSystemIndex : Int;   // Index for IO System
+      tempGeoAddr {InstructionName := 'GEOADDR'; LibVersion := '1.0'} : GEOADDR;   // Geographical address of the disturbed Module / Device
+      tempRetVal : Int;   // Return value of LOG2GEO
+      tempRetValModuleStates : Int;   // Return value system function ModuleStates
+      tempDeviceModuleStates : Array[0..127] of Bool;   // Storage of the status of all modules in the PN Devices --> State: Problem
+      tempLaddr : HW_DEVICE;   // logical address of the disturbed Module / Device
+      tempDeviceError : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      GOOD : Word := 16#01;   // Status of the hardware object: Bit 0: Good
+      AREA_CENTRAL : UInt := 0;   // Area ID for PLC
+      AREA_PROFINET : UInt := 1;   // Area ID for PROFINET IO
+      AREA_PROFIBUS : UInt := 2;   // Area ID for PROFIBUS DP
+      STATE_PROBLEM : USInt := 5;   // Used for instruction DeviceStates, read out all devices with several problems
+   END_VAR
+
+
+BEGIN
+	//=============================================================================
+	//SIEMENS AG
+	//(c)Copyright 2015 All Rights Reserved
+	//-----------------------------------------------------------------------------
+	//Library: -
+	//Tested with: S7-1516-3 PN/DP FW 1.7
+	//Engineering: TIA Portal V13 SP1
+	//Restrictions: -
+	//Requirements: -
+	//Functionality: Evaluate Diagnostic interrupt OB information for PLC and
+	//               devices
+	//-----------------------------------------------------------------------------
+	//Change log table:
+	//Version  Date       Expert in charge                Changes applied
+	//01.00.00 24.03.2015 Siemens Industry Online Support First released version
+	//02.02.00 05.07.2016 Siemens Industry Online Support check state if no
+	//                                                    other error
+	//=============================================================================
+	
+	//=============================================================================
+	// evaluate IO state from Diagnostic interrupt OB
+	// and set information to DiagnosticsData DB
+	//=============================================================================
+	
+	//=============================================================================
+	// determine geographic address of faulty device
+	//=============================================================================
+	#tempRetVal := LOG2GEO(LADDR := #laddr,
+	                       GEOADDR := #tempGeoAddr);
+	
+	
+	//=============================================================================
+	// evaluate diagnosis information for devices in an IO system
+	//=============================================================================
+	IF (#tempGeoAddr.AREA = #AREA_PROFINET)
+	  OR (#tempGeoAddr.AREA = #AREA_PROFIBUS)
+	THEN
+	  
+	  //=============================================================================
+	  // determine index for IO system
+	  //=============================================================================
+	  FOR #tempIndex := 1 TO "MAX_SYSTEM" DO
+	    IF ("DiagnosticsData".ioSystem[#tempIndex].ioSystemId = #tempGeoAddr.IOSYSTEM)
+	    THEN
+	      #tempIoSystemIndex := #tempIndex;
+	    END_IF;
+	  END_FOR;
+	  
+	  IF (#tempIoSystemIndex <= "MAX_SYSTEM")
+	    AND (#tempGeoAddr.STATION <= "MAX_DEVICES_SYSTEM")
+	    AND (#tempGeoAddr.SLOT <= "MAX_MODULES_DEVICE")
+	  THEN
+	    // evaluate diagnosis information IO system
+	    IF (#ioState = #GOOD)
+	    THEN
+	      #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].slot[#tempGeoAddr.SLOT].slotErrorState := FALSE;
+	      
+	      // check, if there is another error
+	      #tempDeviceError := FALSE;
+	      FOR #tempIndex := 0 TO #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].actualConfiguredModules DO
+	        IF #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].slot[#tempIndex].slotErrorState = TRUE
+	        THEN
+	          #tempDeviceError := TRUE;
+	        END_IF;
+	      END_FOR;
+	      
+	      // change state only if no other error
+	      IF #tempDeviceError = FALSE
+	      THEN
+	        #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].error := FALSE;
+	        IF (#ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState = "DEV_STATE_FAULT")
+	        THEN
+	          #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState := "DEV_STATE_WAS_FAULT";
+	        ELSIF (#ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState = "DEV_STATE_LOST_CON")
+	        THEN
+	          #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState := "DEV_STATE_WAS_LOST";
+	        ELSE
+	          #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState := "DEV_STATE_OK";
+	        END_IF;
+	      ELSE
+	        #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].error := TRUE;
+	        #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState := "DEV_STATE_FAULT";
+	      END_IF;
+	      
+	    ELSE
+	      #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].error := TRUE;
+	      #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].errorState := "DEV_STATE_FAULT";
+	      
+	      #ioSystem[#tempIoSystemIndex].device[#tempGeoAddr.STATION].slot[#tempGeoAddr.SLOT].slotErrorState := TRUE;
+	    END_IF;
+	    
+	    // copy diagnosis information to ShowDiag DB
+	    "CopyToHmiDB"(deviceIndex := UINT_TO_INT(#tempGeoAddr.STATION),
+	                  plc := #plc,
+	                  showPlc := #showPlc,
+	                  ioSystem := #ioSystem[#tempIoSystemIndex],
+	                  showIoSystem := #showIoSystem[#tempIoSystemIndex]);
+	    
+	    // set flag to update active IO system for HMI
+	    #showActIoSystem.diagnosisLoaded := TRUE;
+	    
+	  END_IF;
+	  
+	  //=============================================================================
+	  // evaluate diagnosis information for PLC
+	  //=============================================================================
+	ELSIF (#tempGeoAddr.AREA = #AREA_CENTRAL)
+	THEN
+	  
+	  IF (#tempGeoAddr.SLOT <= "MAX_MODULES_LOCAL")
+	  THEN
+	    // evaluate diagnosis information PLC
+	    IF (#ioState = #GOOD)
+	    THEN
+	      #plc.slot[#tempGeoAddr.SLOT].slotErrorState := FALSE;
+	    ELSE
+	      #plc.slot[#tempGeoAddr.SLOT].slotErrorState := TRUE;
+	    END_IF;
+	    
+	    // copy diagnosis information to ShowDiag DB
+	    "CopyToHmiDB"(deviceIndex := 0,
+	                  plc := #plc,
+	                  showPlc := #showPlc,
+	                  ioSystem := #ioSystem[#tempIoSystemIndex],
+	                  showIoSystem := #showIoSystem[#tempIoSystemIndex]);
+	    
+	  END_IF;
+	  
+	ELSE
+	  ;
+	END_IF;
+	
+END_FUNCTION
+

@@ -1,0 +1,390 @@
+﻿FUNCTION_BLOCK "DiagStartupIoSystem"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      ioSystemHwId : HW_IOSYSTEM;   // This ID is representing the IO System (PN or DP), find the ID in the system constants
+   END_VAR
+
+   VAR_OUTPUT 
+      status : Int;   // The return value of system function, where the last error occured
+      instructionError : Int;   // Indicates in which system function the error occured: 1= DeviceStates PN , 2=GetName PN, 3=ModuleStates PN,  4=DeviceStates DP, 5= GetName DP. 6= ModuleStates DP
+      errorIndex : Int;   // The last index of the respective loop, if an error occures
+   END_VAR
+
+   VAR_IN_OUT 
+      ioSystem : "typeIoSystem";   // The diagnostics structure for one IO System
+   END_VAR
+
+   VAR 
+      statActualConfiguredDevices : Int := 0;   // Actual number of devices in the PN IO System
+      statGeoAddr {InstructionName := 'GEOADDR'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : GEOADDR;   // Slot information
+      statGeoLaddr { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_ANY;   // GEO2LOG hardware identifier
+      statConfiguredDevices { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..1023] of Bool;   // Temporary storage of the return of "DeviceStates", to combine the states of the devices with numbers and names
+      statExistingDevices : Array[0..1023] of Bool;   // Temporary storage of the return of "DeviceStates", to combine the states of the devices with numbers and names
+      statFaultyDevices : Array[0..1023] of Bool;   // Temporary storage of the return of "DeviceStates", to combine the states of the divices with numbers and names
+      statDisabledDevices { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..1023] of Bool;   // Storage of the status of all devices in the PN IO System --> State: Disabled
+      statProblemDevices { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..1023] of Bool;   // Storage of the status of all devices in the PN IO System --> State: Problem
+      statDeviceModuleStates : Array[0..127] of Bool;   // Storage of the status of all modules in the PN Devices --> State: Problem
+      instGetNameDevices {InstructionName := 'Get_Name'; LibVersion := '1.3'} : Get_Name;   // Instance of system function "GetName"
+      statInitString : String;   // Used to initialize the temporary string to convert into STRING[50]
+      statFirstDevice : UInt;   // Station number of the first device of the list
+      statFirstDeviceFlag { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Help tag for the first device in the linked list
+      statLastDevice : UInt;   // Station number of the last device of the list
+      statLinkedListPointer : Int;   // The actual index pointer of the linked list (Actual pointer = Station number of the device)
+      statFirstRun : Bool := TRUE;   // Signalizes the first run
+      statResetStatesOld : Bool;   // Detect a rising edge at ResetStates
+      statMaxDevices : Int;
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // index configured devices
+      tempSlotIndex : Int;   // Loop index
+      tempModuleNum : Int;   // index module number
+      tempRetValGeo : Int;   // GEO2LOG error information
+      tempRetValDeviceStates : Int;   // DeviceStates error information
+      tempRetValModuleStates : Int;   // Return value system function ModuleStates
+      tempStringConvert : String;   // Store the device names temporary here, to convert them into STRING[50]
+      tempLastDevice : UInt;   // Temporary storage of the actual index, if it´s the last device --> store it in static
+      tempIoSystemError : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_CONFIGURED : USInt := 1;   // Used for instruction DeviceStates, read out all configured devices
+      STATE_FAULTY : USInt := 2;   // Used for instruction DeviceStates, read out all faulty devices
+      STATE_DISABLED : USInt := 3;   // Used for instruction DeviceStates, read out all disabled devices
+      STATE_EXIST : USInt := 4;   // Used for instruction DeviceStates, read out all devices not reachable
+      STATE_PROBLEM : USInt := 5;   // Used for instruction DeviceStates, read out all devices with several problems
+      DEVICE_SLAVE : USInt := 2;   // GEO2LOG structure: HW type = 2
+      MODULE_OF_DEVICE : USInt := 4;   // GEO2LOG structure: HW type = 4
+      IO_SYSTEM_AREA : USInt := 1;   // GEO2LOG structure: Area = 1
+      DP_SYSTEM_AREA : USInt := 2;   // GEO2LOG structure: Area = 2
+      ERR_DEV_STATE_DEVICES : USInt := 1;   // Identifies the instruction behind the error code of output "Status" --> DeviceStates PN (Configured, faulty, existing)
+      ERR_GET_NAME_DEVICES : USInt := 2;   // Identifies the instruction behind the error code of output "Status" -->  GetName of devices PN
+      ERR_MOD_STAT_DEVICES : USInt := 3;   // Identifies the instruction behind the error code of output "Status" --> ModuleStates PN
+      ERR_DEV_STAT_PN : USInt := 1;   // Value for output instruction error, DeviceStates PN devices
+      ERR_MOD_STAT_PN : USInt := 4;   // Value for output instruction error, ModuleStates PN devices
+      MAX_SLAVES_DP : Int := 127;
+   END_VAR
+
+
+BEGIN
+	//=============================================================================
+	//SIEMENS AG
+	//(c)Copyright 2015 All Rights Reserved
+	//-----------------------------------------------------------------------------
+	//Library: -
+	//Tested with: S7-1516-3 PN/DP FW 1.7
+	//Engineering: TIA Portal V13 SP1
+	//Restrictions: -
+	//Requirements: -
+	//Functionality: Determine hardware identifier and module states from devices
+	//-----------------------------------------------------------------------------
+	//Change log table:
+	//Version  Date       Expert in charge Changes applied
+	//01.00.00 24.03.2015 Siemens Industry Online Support First released version
+	//=============================================================================
+	
+	// The startup will be executed only once --> initialize the first run
+	// indicator.
+	#statFirstDeviceFlag := TRUE;
+	#statFirstRun := TRUE;
+	#statActualConfiguredDevices := 0;
+	#statFirstDevice := 1;
+	#statLastDevice := 1;
+	
+	//=============================================================================
+	// CONFIGURED DEVICES
+	//=============================================================================
+	// Find out how much devices are configured in the IO System --> PROFINET IO
+	// This number is the maximum number of devices, which will be checked in the
+	// following programm
+	#tempRetValDeviceStates := DeviceStates(LADDR := #ioSystemHwId,
+	                                        MODE := #STATE_CONFIGURED,
+	                                        STATE := #statConfiguredDevices);
+	
+	// Check if the block call was successful
+	IF (#tempRetValDeviceStates <> 0)
+	THEN
+	  // Error handling
+	  #status := #tempRetValDeviceStates;
+	  #instructionError := #ERR_DEV_STATE_DEVICES;
+	  // Call ok --> store the actual number of configured devices    
+	ELSE
+	  ;
+	END_IF;
+	
+	//=============================================================================
+	// EXISTING DEVICES
+	//=============================================================================
+	#tempRetValDeviceStates := DeviceStates(LADDR := #ioSystemHwId,
+	                                        MODE := #STATE_EXIST,
+	                                        STATE := #statExistingDevices);
+	
+	// Check if the block call was successful
+	IF (#tempRetValDeviceStates <> 0)
+	THEN
+	  // Error handling
+	  #status := #tempRetValDeviceStates;
+	  #instructionError := #ERR_DEV_STATE_DEVICES;
+	  // Call ok --> store the actual number of configured devices    
+	ELSE
+	  ;
+	END_IF;
+	
+	//=============================================================================
+	// FAULTY DEVICES
+	//=============================================================================
+	#tempRetValDeviceStates := DeviceStates(LADDR := #ioSystemHwId,
+	                                        MODE := #STATE_FAULTY,
+	                                        STATE := #statFaultyDevices);
+	
+	// Check if the block call was successful
+	IF (#tempRetValDeviceStates <> 0)
+	THEN
+	  // Error handling
+	  #status := #tempRetValDeviceStates;
+	  #instructionError := #ERR_DEV_STATE_DEVICES;
+	  // Call ok --> store the actual number of configured devices    
+	ELSE
+	  ;
+	END_IF;
+	
+	// Find out the number of the assigned IO system, to define if it is
+	// a PN or DP Network
+	#tempRetValGeo := LOG2GEO(LADDR := #ioSystemHwId,
+	                          GEOADDR := #statGeoAddr);
+	
+	// set IO system ID
+	#ioSystem.ioSystemId := #statGeoAddr.IOSYSTEM;
+	
+	// Inilize the structure for system function GEO2LOG
+	#statGeoAddr.HWTYPE := #DEVICE_SLAVE;   // Hardware type 2: IO device
+	// Predefine the type OF IO system. Either Profinet IO or Profibus DP
+	IF ((#statGeoAddr.IOSYSTEM >= 100) 
+	  AND (#statGeoAddr.IOSYSTEM <= 115))
+	THEN
+	  #statGeoAddr.AREA := #IO_SYSTEM_AREA;   // Area ID 1: PROFINET IO
+	  #statMaxDevices := "MAX_DEVICES_SYSTEM";
+	ELSIF ((#statGeoAddr.IOSYSTEM >= 1)
+	  AND (#statGeoAddr.IOSYSTEM <= 32))
+	THEN
+	  #statGeoAddr.AREA := #DP_SYSTEM_AREA;   // Area ID 1: Profibus DP
+	  #statMaxDevices := #MAX_SLAVES_DP;
+	ELSE
+	  ;
+	END_IF;
+	
+	// Go trough all devices and get the status of the configured
+	FOR #tempIndex := 1 TO #statMaxDevices DO
+	  // The devices are configured --> Read out the logical address and the
+	  // device name
+	  IF (#statConfiguredDevices[#tempIndex] = TRUE)
+	  THEN
+	    // Increment the actual configured devices, store the state and
+	    // HW_ID as an numerical value (UINT)
+	    #statActualConfiguredDevices := #statActualConfiguredDevices + 1;
+	    
+	    // Store the first configured device for the linked list
+	    IF (#statFirstDeviceFlag = TRUE)
+	    THEN
+	      #statFirstDevice := INT_TO_UINT(#tempIndex);
+	      #ioSystem.firstDevice := UINT_TO_INT(#statFirstDevice);
+	      #statFirstDeviceFlag := FALSE;
+	      #tempLastDevice := INT_TO_UINT(#tempIndex);
+	      // It´s not the first bit --> Store the actual index as "next device"
+	      // in the further one!
+	    ELSE
+	      #ioSystem.device[#tempLastDevice].nextDevice := #tempIndex;
+	      #tempLastDevice := INT_TO_UINT(#tempIndex);
+	    END_IF;
+	    // Store the index of the last device for the exit condition of the
+	    // followiing instructions
+	    #statLastDevice := #tempLastDevice;
+	    #ioSystem.lastDevice := UINT_TO_INT(#statLastDevice);
+	    
+	    // Station number 
+	    #statGeoAddr.STATION := INT_TO_UINT(#tempIndex);
+	    // read LADDR from devices
+	    #tempRetValGeo := GEO2LOG(GEOADDR := #statGeoAddr,
+	                              LADDR => #statGeoLaddr);
+	    // Everything is ok!
+	    IF (#tempRetValGeo = 0)
+	    THEN
+	      // store LADDR from devices in diagnostic data block
+	      #ioSystem.device[#tempIndex].laddr := #statGeoLaddr;
+	      
+	      // Store the device name, if the device is existing
+	      // Get name is an acyclic instruction. In the startup OB, the
+	      // instruction has to be repeated until it is done or error
+	      REPEAT
+	        // Get device name of each decive in PN System
+	        #instGetNameDevices(LADDR := #ioSystemHwId,
+	                            STATION_NR := #statGeoAddr.STATION,
+	                            DATA := #tempStringConvert);
+	        
+	      UNTIL (#instGetNameDevices.DONE = TRUE)
+	        OR (#instGetNameDevices.ERROR = TRUE)
+	      END_REPEAT;
+	      
+	      IF (#instGetNameDevices.ERROR = TRUE)
+	      THEN
+	        // Error handling
+	        #status := WORD_TO_INT(#instGetNameDevices.STATUS);
+	        #instructionError := #ERR_GET_NAME_DEVICES;
+	        #errorIndex := #tempIndex;
+	        
+	        // Everything is ok --> Convert the String[254] into String[50]    
+	      ELSIF (#instGetNameDevices.DONE = TRUE)
+	      THEN
+	        // Cut all characters more than 50 to reduce the string length
+	        #ioSystem.device[#tempIndex].name := DELETE(IN := #tempStringConvert,
+	                                                    L := 204,
+	                                                    P := 50);
+	        
+	        // Initialize the temporary string before next loop
+	        #tempStringConvert := #statInitString;
+	      ELSE
+	        ;
+	      END_IF;
+	    ELSE
+	      // If the return value ist not = 0 --> the device/system/module is
+	      // not configured --> No error handling
+	      // set LADDR from devices to 0 in diagnostic data block
+	      #ioSystem.device[#tempIndex].laddr := 0;
+	      #ioSystem.device[#tempIndex].name := '';
+	    END_IF;
+	    
+	    // Check if the configured devices are faulty or lost once through
+	    // the startup!
+	    IF (#statExistingDevices[#tempIndex] = TRUE)
+	    THEN
+	      IF (#statFaultyDevices[#tempIndex] = TRUE)
+	      THEN
+	        
+	        #ioSystem.device[#tempIndex].errorState := "DEV_STATE_FAULT";
+	        #ioSystem.device[#tempIndex].error := TRUE;
+	        
+	        // The device is not faulty and does exist --> set state ok!    
+	      ELSE
+	        #ioSystem.device[#tempIndex].errorState := "DEV_STATE_OK";
+	        #ioSystem.device[#tempIndex].error := FALSE;
+	      END_IF;
+	      // The connection to the device is lost at the moment    
+	    ELSE
+	      #ioSystem.device[#tempIndex].errorState := "DEV_STATE_LOST_CON";
+	      #ioSystem.device[#tempIndex].error := TRUE;
+	    END_IF;
+	    // No device is configured   
+	  ELSE
+	    ;
+	  END_IF;
+	  
+	END_FOR;
+	// Store the actual configured devices in the diagnostics structure
+	#ioSystem.actualConfiguredDevices := #statActualConfiguredDevices;
+	
+	// Mark parameter "Next Device" of the last device in the list
+	// --> "Next Device" = negative --> Last device in the list
+	#ioSystem.device[#statLastDevice].nextDevice := "LAST_DEVICE";
+	
+	// Go through the devices until the last device is reached
+	// If there are gaps between the device-list, jump over and have a look on
+	// the "NextDevice" parameter
+	REPEAT
+	  IF (#statFirstRun = TRUE)
+	  THEN
+	    // The index of the linked list is representing the station number.
+	    #statGeoAddr.STATION := #statFirstDevice;
+	    // Initialize the pointer for the first run 
+	    #statLinkedListPointer := UINT_TO_INT(#statFirstDevice);
+	    // Reset the flag, which signalizes the first run.
+	    #statFirstRun := FALSE;
+	  ELSE
+	    // The index of the linked list is representing the station number.
+	    #statGeoAddr.STATION := INT_TO_UINT(#statLinkedListPointer);
+	  END_IF;
+	  
+	  //=============================================================================
+	  // Get the logical address of all modules and store the actual number of
+	  // modules from each device
+	  //=============================================================================
+	  
+	  // Inilize the structure for system function GEO2LOG
+	  #statGeoAddr.HWTYPE := #MODULE_OF_DEVICE;   // Hardware type 4: Module
+	  FOR #tempModuleNum := 0 TO "MAX_MODULES_DEVICE" DO
+	    // Slot number
+	    #statGeoAddr.SLOT := INT_TO_UINT(#tempModuleNum);
+	    // read LADDR from modules
+	    #tempRetValGeo := GEO2LOG(GEOADDR := #statGeoAddr,
+	                              LADDR => #statGeoLaddr);
+	    // check Retval
+	    IF (#tempRetValGeo = 0)
+	    THEN
+	      // store LADDR from modules in diagnostic data block
+	      #ioSystem.device[#statLinkedListPointer].slot[#tempModuleNum].slotLaddr := #statGeoLaddr;
+	      #ioSystem.device[#statLinkedListPointer].actualConfiguredModules := #ioSystem.device[#statLinkedListPointer].actualConfiguredModules + 1;
+	    ELSE
+	      // If the return value ist not = 0 --> the device/system/module is
+	      // not configured --> No error handling
+	      // set LADDR from modules to 0 in diagnostic data block
+	      #ioSystem.device[#statLinkedListPointer].slot[#tempModuleNum].slotLaddr := 0;
+	    END_IF;
+	  END_FOR;
+	  
+	  //=============================================================================
+	  // Check modules of faulty Devices
+	  //=============================================================================
+	  
+	  // Check the state of the configured devices
+	  IF (#ioSystem.device[#statLinkedListPointer].errorState = "DEV_STATE_FAULT")
+	  THEN
+	    // The device is reachable, but faulty because of an error in a
+	    // subordinated system --> check the modules
+	    #tempRetValModuleStates := ModuleStates(LADDR := #ioSystem.device[#statLinkedListPointer].laddr,
+	                                            MODE := #STATE_PROBLEM,
+	                                            STATE := #statDeviceModuleStates);
+	    
+	    IF (#tempRetValModuleStates <> 0)
+	    THEN
+	      // Error hanlding
+	      #status := #tempRetValModuleStates;
+	      #instructionError := #ERR_MOD_STAT_DEVICES;
+	      #errorIndex := UINT_TO_INT(#statFirstDevice);
+	    ELSE
+	      // Store the state of the different module in the diag DB
+	      FOR #tempSlotIndex := 0 TO #ioSystem.device[#statFirstDevice].actualConfiguredModules DO
+	        IF (#statDeviceModuleStates[#tempSlotIndex + 1] = TRUE)
+	        THEN
+	          #ioSystem.device[#statLinkedListPointer].slot[#tempSlotIndex].slotErrorState := TRUE;
+	        ELSE
+	          #ioSystem.device[#statLinkedListPointer].slot[#tempSlotIndex].slotErrorState := FALSE;
+	        END_IF;
+	      END_FOR;
+	    END_IF;
+	  ELSIF (#ioSystem.device[#statLinkedListPointer].errorState = "DEV_STATE_LOST_CON")
+	  THEN
+	    
+	    FOR #tempSlotIndex := 0 TO #ioSystem.device[#statLinkedListPointer].actualConfiguredModules DO
+	      IF (#ioSystem.device[#statLinkedListPointer].slot[#tempSlotIndex].slotLaddr <> 0)
+	      THEN
+	        #ioSystem.device[#statLinkedListPointer].slot[#tempSlotIndex].slotErrorState := TRUE;
+	      END_IF;
+	    END_FOR;
+	    
+	  ELSE
+	    ; // no faulty device --> nothing to do!
+	  END_IF;
+	  
+	  // Initialize the pointer for the next run
+	  #statLinkedListPointer := #ioSystem.device[#statLinkedListPointer].nextDevice;
+	  // If the last device is reached, reset the bit for the first run
+	  //#FirstRun := TRUE;
+	  // Checking the modules is done, the last device is reached
+	UNTIL (#statLinkedListPointer < 0)
+	END_REPEAT;
+	// Reset the condition for the first run.
+	#statFirstRun := TRUE;
+	
+	
+END_FUNCTION_BLOCK
+

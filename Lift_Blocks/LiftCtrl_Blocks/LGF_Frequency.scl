@@ -1,0 +1,94 @@
+﻿FUNCTION_BLOCK "LGF_Frequency"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      frequency : Real;   // Input in Hz
+      pulsePauseRatio : Real := 1.0;   // Pulse pause ratio
+   END_VAR
+
+   VAR_OUTPUT 
+      clock : Bool;   // -
+      countdown : Time;   // -
+   END_VAR
+
+   VAR 
+      instTofTimePulse {InstructionName := 'TOF_TIME'; LibVersion := '1.0'} : TOF_TIME;   // -
+      instTofTimePause {InstructionName := 'TOF_TIME'; LibVersion := '1.0'} : TOF_TIME;   // -
+      statFrequency : Real;   // -
+      statTimePeriod : Time;   // -
+      statTimePulse : Time;   // -
+      statTimePause : Time;   // -
+      statPulsePauseRatio : Real;   // -
+   END_VAR
+
+   VAR_TEMP 
+      tempPulseRate : Real;   // -
+      tempPauseRate : Real;   // -
+   END_VAR
+
+   VAR CONSTANT 
+      "NULL" : Real := 0.0;   // -
+   END_VAR
+
+
+BEGIN
+	//=============================================================================
+	// SIEMENS AG
+	// (c)Copyright 2017
+	//-----------------------------------------------------------------------------
+	// Library:       LGF (Library General Functions)
+	// Tested with:   CPU1214C DC/DC/DC FW:V4.2
+	// Engineering:   TIA Portal V14
+	// Restrictions:  -
+	// Requirements:  PLC (S7-1200, S7-1500)
+	// Functionality: Generates frequency signal
+	//-----------------------------------------------------------------------------
+	// Change log table:
+	// Version  Date        Expert in charge / Changes applied
+	// 01.00.00 19.08.2015  Siemens Industry Online Support
+	//                      First released version
+	// 01.01.00 25.05.2016  Siemens Industry Online Support
+	//                      New function: pulse pause ratio
+	// 01.01.01 26.05.2016  Siemens Industry Online Support
+	//                      Add comments
+	// 01.01.02 02.01.2017  Siemens Industry Online Support
+	//                      Upgrade: TIA Portal V14 Update 1
+	// 01.01.03 17.08.2018  Siemens Industry Online Support
+	//                      Upgrade: TIA V15 Update 2
+	//=============================================================================
+	
+	IF (#frequency <= #NULL) OR (#pulsePauseRatio <= #NULL)  // If input is <= 0.0 : block is off
+	THEN
+	    #clock := FALSE;
+	    #countdown := t#0s;
+	ELSE
+	    // assign frequency and pulse pause ratio one time 
+	    IF #statFrequency <> #frequency OR #statPulsePauseRatio <> #pulsePauseRatio THEN
+	        RESET_TIMER(TIMER := #instTofTimePause);
+	        RESET_TIMER(TIMER := #instTofTimePulse);
+	        
+	        #tempPulseRate := #pulsePauseRatio / (#pulsePauseRatio + 1); // Calculate pulse rate   
+	        #tempPauseRate := 1.0 - #tempPulseRate;                      // Calculate pause rate   
+	        #statTimePeriod := UDINT_TO_TIME(REAL_TO_UDINT((1000.0 / #frequency)));                 // Calculate period time 
+	        #statTimePulse := UDINT_TO_TIME(REAL_TO_UDINT((1000.0 * #tempPulseRate / #frequency))); // Calculate pulse time   
+	        #statTimePause := UDINT_TO_TIME(REAL_TO_UDINT((1000.0 * #tempPauseRate / #frequency))); // Calculate pause time
+	        #statFrequency := #frequency;
+	        #statPulsePauseRatio := #pulsePauseRatio;
+	    END_IF;
+	    
+	    // TOF_off expired >> Start again
+	    #instTofTimePulse(IN := NOT #instTofTimePause.Q,
+	                      PT := #statTimePulse);
+	    #countdown := #statTimePulse - #instTofTimePulse.ET;
+	    
+	    #instTofTimePause(IN := #instTofTimePulse.Q,
+	                      PT := #statTimePause);
+	    
+	    IF #countdown = t#0s THEN
+	        #countdown := #statTimePause - #instTofTimePause.ET;
+	    END_IF;
+	    
+	    #clock := #instTofTimePulse.Q; // Assign ouptut 
+	END_IF;
+END_FUNCTION_BLOCK
+

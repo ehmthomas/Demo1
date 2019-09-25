@@ -1,0 +1,222 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V16" />
+  <DocumentInfo>
+    <Created>2019-09-22T11:06:18.4384038Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SIMATIC Energy Suite</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Professional</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SIMATIC Visualization Architect</DisplayName>
+        <DisplayVersion>V16</DisplayVersion>
+      </OptionPackage>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.InstanceDB ID="0">
+    <AttributeList>
+      <AutoNumber>true</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <InstanceOfName>Diagnostics</InstanceOfName>
+      <InstanceOfType>FB</InstanceOfType>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v4">
+  <Section Name="Input">
+    <Member Name="firstCyleInit" Datatype="Bool" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute></AttributeList></Member>
+  </Section>
+  <Section Name="Output" />
+  <Section Name="InOut">
+    <Member Name="plc" Datatype="&quot;typePlc&quot;" Accessibility="Public">
+      <Sections>
+        <Section Name="None">
+          <Member Name="actualConfiguredCentralModules" Datatype="Int" />
+          <Member Name="errorState" Datatype="Bool" />
+          <Member Name="slot" Datatype="Array[1..&quot;MAX_MODULES_LOCAL&quot;] of &quot;typeModul&quot;">
+            <Sections>
+              <Section Name="None">
+                <Member Name="slotLaddr" Datatype="HW_IO" />
+                <Member Name="slotErrorState" Datatype="Bool" />
+              </Section>
+            </Sections>
+          </Member>
+        </Section>
+      </Sections>
+    </Member>
+    <Member Name="showPlc" Datatype="&quot;typeShowPlc&quot;" Accessibility="Public">
+      <Sections>
+        <Section Name="None">
+          <Member Name="diagnosisLoaded" Datatype="Bool" />
+          <Member Name="errorState" Datatype="Bool" />
+          <Member Name="slot" Datatype="Array[1..&quot;MAX_MODULES_LOCAL&quot;] of &quot;typeShowModul&quot;">
+            <Sections>
+              <Section Name="None">
+                <Member Name="slotUsed" Datatype="Bool" />
+                <Member Name="slotErrorState" Datatype="Bool" />
+              </Section>
+            </Sections>
+          </Member>
+        </Section>
+      </Sections>
+    </Member>
+    <Member Name="ioSystem" Datatype="Array[1..&quot;MAX_SYSTEM&quot;] of &quot;typeIoSystem&quot;" Accessibility="Public">
+      <Sections>
+        <Section Name="None">
+          <Member Name="ioSystemId" Datatype="UInt" />
+          <Member Name="ioSystemError" Datatype="Bool" />
+          <Member Name="firstDevice" Datatype="Int" />
+          <Member Name="lastDevice" Datatype="Int" />
+          <Member Name="actualConfiguredDevices" Datatype="Int" />
+          <Member Name="device" Datatype="Array[1..&quot;MAX_DEVICES_SYSTEM&quot;] of &quot;typeDevice&quot;">
+            <Sections>
+              <Section Name="None">
+                <Member Name="laddr" Datatype="HW_DEVICE" />
+                <Member Name="name" Datatype="String[50]" />
+                <Member Name="errorState" Datatype="USInt" />
+                <Member Name="error" Datatype="Bool" />
+                <Member Name="nextDevice" Datatype="Int" />
+                <Member Name="actualConfiguredModules" Datatype="Int" />
+                <Member Name="slot" Datatype="Array[0..&quot;MAX_MODULES_DEVICE&quot;] of &quot;typeModul&quot;">
+                  <Sections>
+                    <Section Name="None">
+                      <Member Name="slotLaddr" Datatype="HW_IO" />
+                      <Member Name="slotErrorState" Datatype="Bool" />
+                    </Section>
+                  </Sections>
+                </Member>
+              </Section>
+            </Sections>
+          </Member>
+        </Section>
+      </Sections>
+    </Member>
+    <Member Name="showIoSystem" Datatype="Array[1..&quot;MAX_SYSTEM&quot;] of &quot;typeShowIoSystem&quot;" Accessibility="Public">
+      <Sections>
+        <Section Name="None">
+          <Member Name="device" Datatype="Array[1..&quot;MAX_DEVICES_SYSTEM&quot;] of &quot;typeShowDevice&quot;">
+            <Sections>
+              <Section Name="None">
+                <Member Name="stationNumber" Datatype="UInt" />
+                <Member Name="name" Datatype="String[50]" />
+                <Member Name="errorState" Datatype="USInt" />
+                <Member Name="slot" Datatype="Array[0..&quot;MAX_MODULES_DEVICE&quot;] of &quot;typeShowModul&quot;">
+                  <Sections>
+                    <Section Name="None">
+                      <Member Name="slotUsed" Datatype="Bool" />
+                      <Member Name="slotErrorState" Datatype="Bool" />
+                    </Section>
+                  </Sections>
+                </Member>
+              </Section>
+            </Sections>
+          </Member>
+        </Section>
+      </Sections>
+    </Member>
+    <Member Name="showActIoSystem" Datatype="&quot;typeShowActIoSystem&quot;" Accessibility="Public">
+      <Sections>
+        <Section Name="None">
+          <Member Name="diagnosisLoaded" Datatype="Bool" />
+          <Member Name="actIoSystem" Datatype="Int" />
+          <Member Name="actDeviceIndex" Datatype="Int" />
+          <Member Name="copyModuleStates" Datatype="Bool" />
+          <Member Name="resetStates" Datatype="Bool" />
+          <Member Name="device" Datatype="Array[1..&quot;MAX_DEVICES_SYSTEM&quot;] of &quot;typeShowDevice&quot;">
+            <Sections>
+              <Section Name="None">
+                <Member Name="stationNumber" Datatype="UInt" />
+                <Member Name="name" Datatype="String[50]" />
+                <Member Name="errorState" Datatype="USInt" />
+                <Member Name="slot" Datatype="Array[0..&quot;MAX_MODULES_DEVICE&quot;] of &quot;typeShowModul&quot;">
+                  <Sections>
+                    <Section Name="None">
+                      <Member Name="slotUsed" Datatype="Bool" />
+                      <Member Name="slotErrorState" Datatype="Bool" />
+                    </Section>
+                  </Sections>
+                </Member>
+              </Section>
+            </Sections>
+          </Member>
+          <Member Name="actDevice" Datatype="&quot;typeShowDevice&quot;">
+            <Sections>
+              <Section Name="None">
+                <Member Name="stationNumber" Datatype="UInt" />
+                <Member Name="name" Datatype="String[50]" />
+                <Member Name="errorState" Datatype="USInt" />
+                <Member Name="slot" Datatype="Array[0..&quot;MAX_MODULES_DEVICE&quot;] of &quot;typeShowModul&quot;">
+                  <Sections>
+                    <Section Name="None">
+                      <Member Name="slotUsed" Datatype="Bool" />
+                      <Member Name="slotErrorState" Datatype="Bool" />
+                    </Section>
+                  </Sections>
+                </Member>
+              </Section>
+            </Sections>
+          </Member>
+        </Section>
+      </Sections>
+    </Member>
+  </Section>
+  <Section Name="Static">
+    <Member Name="statIoSystemIndex" Datatype="Int" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="statSlotIndex" Datatype="Int" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="statDeviceIndex" Datatype="Int" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+  </Section>
+</Sections></Interface>
+      <Name>InstDiagnostics</Name>
+      <Number>2000</Number>
+      <ProgrammingLanguage>DB</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="3" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.InstanceDB>
+</Document>
